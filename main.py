@@ -47,7 +47,9 @@ def list_tickets(account: dict = Depends(current_account)):
 @app.get("/tickets/{ticket_id}")
 def get_ticket(ticket_id: int, account: dict = Depends(current_account)):
     ticket = TICKETS.get(ticket_id)
-    if ticket is None:
+    # Same rule as close_ticket: customers only see their own tickets. Answer 404 for someone
+    # else's ticket so ticket ids cannot be probed.
+    if ticket is None or (account["role"] != "agent" and ticket["owner_id"] != account["id"]):
         raise HTTPException(status_code=404, detail="ticket not found")
     return ticket
 
