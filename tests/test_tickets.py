@@ -27,3 +27,18 @@ def test_close_is_limited_to_owner():
     tid = client.post("/tickets", json={"subject": "Refund", "body": "please"}, headers=ALICE).json()["id"]
     assert client.post(f"/tickets/{tid}/close", headers=BOB).status_code == 404
     assert client.post(f"/tickets/{tid}/close", headers=ALICE).json()["status"] == "closed"
+
+
+def test_get_is_limited_to_owner_or_agent():
+    tid = client.post("/tickets", json={"subject": "Refund", "body": "please"}, headers=ALICE).json()["id"]
+    assert client.get(f"/tickets/{tid}", headers=BOB).status_code == 404
+    assert client.get(f"/tickets/{tid}", headers=ALICE).json()["subject"] == "Refund"
+    assert client.get(f"/tickets/{tid}", headers=AGENT).status_code == 200
+
+
+def test_unknown_ticket_looks_the_same_as_someone_elses():
+    tid = client.post("/tickets", json={"subject": "Refund", "body": "please"}, headers=ALICE).json()["id"]
+    other = client.get(f"/tickets/{tid}", headers=BOB)
+    missing = client.get("/tickets/9999", headers=BOB)
+    assert other.status_code == missing.status_code == 404
+    assert other.json() == missing.json()
